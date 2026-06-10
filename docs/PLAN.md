@@ -29,8 +29,8 @@ MVP 단계에서 단순화하는 부분:
 | 마일스톤 | 내용 | PRD 매핑 | 상태 |
 |---|---|---|---|
 | M0 | 프로젝트 셋업 (모노레포, DB, 인프라 골격) | 7장 아키텍처 | done |
-| M1 | 사용자 입력 플로우 UI | 3장 STEP 1~5 | progress |
-| M2 | PLAN & RESEARCH (사양서 + 후보군) | 4장 Phase 1~2 | todo |
+| M1 | 사용자 입력 플로우 UI | 3장 STEP 1~5 | done |
+| M2 | PLAN & RESEARCH (사양서 + 후보군) | 4장 Phase 1~2 | progress |
 | M3 | REVIEW SCAN & LIST UP (후기 평가 + 1차 압축) | 4장 Phase 3~4 | todo |
 | M4 | DIGGING & FINAL ENTRY (세계관/Decision Narrative + 카드) | 4장 Phase 5~6 | todo |
 | M5 | CHOICE (토너먼트 UI) | 4장 Phase 7 | todo |
@@ -77,13 +77,14 @@ PRD 7장 기준.
 - [x] 환경변수/시크릿 관리 구조 (.env.example, AI API 키 자리)
 - [x] 카테고리 스펙 스키마 정의 (packages/shared/categories/laptop.json + 시드 스크립트)
 
-### M1. 사용자 입력 플로우 (STEP 1~5)
-- [ ] STEP1 카테고리 선택 UI (노트북만 활성)
-- [ ] STEP2 예산 입력 (목표 예산 + 허용 오차 %)
-- [ ] STEP3 용도 자연어 입력 UI
-- [ ] STEP4 우선순위 선택 (1~3순위)
-- [ ] STEP5 토너먼트 규모 선택 (2/4/8/16강, Auto)
-- [ ] 입력값을 하나의 "요청 세션" 객체로 백엔드에 전달하는 API 설계
+### M1. 사용자 입력 플로우 (STEP 1~5) — `done`
+- [x] STEP1 카테고리 선택 UI (노트북만 활성)
+- [x] STEP2 예산 입력 (목표 예산 + 허용 오차 %)
+- [x] STEP3 용도 자연어 입력 UI
+- [x] STEP4 우선순위 선택 (1~3순위, 클릭 순서 = 순위)
+- [x] STEP5 토너먼트 규모 선택 (2/4/8/16강, Auto)
+- [x] 입력값을 하나의 "요청 세션" 객체로 백엔드에 전달 (POST /api/sessions)
+- [x] 세션 요약 화면 (`/session/[id]`, 엔진 단계 표시 — M2부터 단계 진행)
 
 ### M2. PLAN & RESEARCH (Phase 1~2)
 - [ ] **PLAN**: 사용자 입력(예산/용도/우선순위) → AI 프롬프트로 "최적 사양서" 생성
