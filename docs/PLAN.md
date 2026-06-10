@@ -30,8 +30,8 @@ MVP 단계에서 단순화하는 부분:
 |---|---|---|---|
 | M0 | 프로젝트 셋업 (모노레포, DB, 인프라 골격) | 7장 아키텍처 | done |
 | M1 | 사용자 입력 플로우 UI | 3장 STEP 1~5 | done |
-| M2 | PLAN & RESEARCH (사양서 + 후보군) | 4장 Phase 1~2 | progress |
-| M3 | REVIEW SCAN & LIST UP (후기 평가 + 1차 압축) | 4장 Phase 3~4 | todo |
+| M2 | PLAN & RESEARCH (사양서 + 후보군) | 4장 Phase 1~2 | done |
+| M3 | REVIEW SCAN & LIST UP (후기 평가 + 1차 압축) | 4장 Phase 3~4 | progress |
 | M4 | DIGGING & FINAL ENTRY (세계관/Decision Narrative + 카드) | 4장 Phase 5~6 | todo |
 | M5 | CHOICE (토너먼트 UI) | 4장 Phase 7 | todo |
 | M6 | Decision Journal & Choice Confidence | 5~6장 | todo |
@@ -86,13 +86,16 @@ PRD 7장 기준.
 - [x] 입력값을 하나의 "요청 세션" 객체로 백엔드에 전달 (POST /api/sessions)
 - [x] 세션 요약 화면 (`/session/[id]`, 엔진 단계 표시 — M2부터 단계 진행)
 
-### M2. PLAN & RESEARCH (Phase 1~2)
-- [ ] **PLAN**: 사용자 입력(예산/용도/우선순위) → AI 프롬프트로 "최적 사양서" 생성
+### M2. PLAN & RESEARCH (Phase 1~2) — `done`
+- [x] **PLAN**: 사용자 입력(예산/용도/우선순위) → AI 프롬프트로 "최적 사양서" 생성
   - 출력 스키마: CPU, RAM, 저장장치, 무게, 배터리, 필수 기능
-- [ ] **RESEARCH**: 사양서 기반 시장 후보군 수집
-  - MVP: AI + 검색 API로 후보 리스트(이름/스펙/가격) 생성, DB에 저장
-  - 후보 데이터 모델 정의 (제품 마스터 테이블)
-- [ ] PLAN/RESEARCH 결과를 사용자에게 중간 확인용으로 노출하는 화면(선택)
+  - Anthropic SDK + structured outputs(`output_config.format`) 사용,
+    API 키 미설정 시 MockProvider 폴백 (개발/테스트용)
+- [x] **RESEARCH**: 사양서 기반 시장 후보군 수집
+  - MVP: AI로 후보 리스트(이름/브랜드/스펙/가격) 생성, candidate_products 저장
+  - 출처(source=ai) 표기 — Fact Shield 기반
+- [x] PLAN/RESEARCH 결과 노출 화면 (`/session/[id]`: 사양서 + 후보 리스트)
+- [x] phase 가드 (created→plan→research 순서 강제, 409) + pytest e2e 테스트
 
 ### M3. REVIEW SCAN & LIST UP (Phase 3~4)
 - [ ] **REVIEW SCAN**: 후보별 후기 수집/요약 (MVP: AI 기반 요약 + 출처 링크)

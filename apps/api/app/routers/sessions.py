@@ -3,7 +3,8 @@ from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from app.db.base import get_db
-from app.models import RequestSession
+from app.models import CandidateProduct, RequestSession
+from app.services import engine
 
 router = APIRouter()
 
@@ -28,6 +29,19 @@ class SessionOut(BaseModel):
     priorities: list[str]
     tournament_size: int
     engine_phase: str
+    spec_sheet: dict | None = None
+
+    model_config = {"from_attributes": True}
+
+
+class CandidateOut(BaseModel):
+    id: str
+    name: str
+    brand: str
+    price: int
+    specs: dict
+    source: str
+    status: str
 
     model_config = {"from_attributes": True}
 
@@ -49,3 +63,36 @@ def get_session(session_id: str, db: Session = Depends(get_db)) -> RequestSessio
     if session is None:
         raise HTTPException(status_code=404, detail="session not found")
     return session
+
+
+def _get_session_or_404(db: Session, session_id: str) -> RequestSession:
+    session = db.get(RequestSession, session_id)
+    if session is None:
+        raise HTTPException(status_code=404, detail="session not found")
+    return session
+
+
+@router.post("/{session_id}/plan", response_model=SessionOut)
+def run_plan(session_id: str, db: Session = Depends(get_db)) -> RequestSession:
+    """Phase 1. PLAN — 최적 사양서 생성."""
+    session = _get_session_or_404(db, session_id)
+    engine.run_plan(db, session)
+    return session
+
+
+@router.post("/{session_id}/research", response_model=list[CandidateOut])
+def run_research(session_id: str, db: Session = Depends(get_db)) -> list[CandidateProduct]:
+    """Phase 2. RESEARCH — 시장 후보군 수집."""
+    session = _get_session_or_404(db, session_id)
+    return engine.run_research(db, session)
+
+
+@router.get("/{session_id}/candidates", response_model=list[CandidateOut])
+def list_candidates(session_id: str, db: Session = Depends(get_db)) -> list[CandidateProduct]:
+    _get_session_or_404(db, session_id)
+    return (
+        db.query(CandidateProduct)
+        .filter(CandidateProduct.session_id == session_id)
+        .order_by(CandidateProduct.price)
+        .all()
+    )

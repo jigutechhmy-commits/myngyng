@@ -34,4 +34,7 @@ class RequestSession(Base):
     #               → digging → final_entry → choice → done
     engine_phase: Mapped[str] = mapped_column(String(20), default="created")
 
+    # Phase 1. PLAN 결과 (최적 사양서)
+    spec_sheet: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

@@ -10,6 +10,7 @@ class Settings(BaseSettings):
     # AI Layer
     openai_api_key: str = ""
     anthropic_api_key: str = ""
+    anthropic_model: str = "claude-opus-4-8"
 
 
 settings = Settings()

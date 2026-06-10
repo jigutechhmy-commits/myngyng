@@ -34,9 +34,26 @@ export interface SessionCreatePayload {
   tournament_size: number
 }
 
+export interface SpecSheet {
+  summary: string
+  fields: { key: string; label_ko: string; value: string }[]
+  rationale: string
+}
+
 export interface SessionOut extends SessionCreatePayload {
   id: string
   engine_phase: string
+  spec_sheet?: SpecSheet | null
+}
+
+export interface CandidateOut {
+  id: string
+  name: string
+  brand: string
+  price: number
+  specs: Record<string, string | number>
+  source: string
+  status: string
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
@@ -68,4 +85,18 @@ export function createSession(payload: SessionCreatePayload) {
 
 export function getSession(id: string) {
   return request<SessionOut>(`/api/sessions/${id}`)
+}
+
+export function runPlan(id: string) {
+  return request<SessionOut>(`/api/sessions/${id}/plan`, { method: "POST" })
+}
+
+export function runResearch(id: string) {
+  return request<CandidateOut[]>(`/api/sessions/${id}/research`, {
+    method: "POST",
+  })
+}
+
+export function listCandidates(id: string) {
+  return request<CandidateOut[]>(`/api/sessions/${id}/candidates`)
 }
