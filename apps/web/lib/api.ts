@@ -46,6 +46,16 @@ export interface SessionOut extends SessionCreatePayload {
   spec_sheet?: SpecSheet | null
 }
 
+export interface ReviewOut {
+  summary: string
+  sources: string[]
+  fit_score: number
+  budget_score: number
+  satisfaction_score: number
+  missing_required: boolean
+  critical_flaw: string | null
+}
+
 export interface CandidateOut {
   id: string
   name: string
@@ -54,6 +64,8 @@ export interface CandidateOut {
   specs: Record<string, string | number>
   source: string
   status: string
+  elimination_reason: string | null
+  review: ReviewOut | null
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
@@ -93,6 +105,18 @@ export function runPlan(id: string) {
 
 export function runResearch(id: string) {
   return request<CandidateOut[]>(`/api/sessions/${id}/research`, {
+    method: "POST",
+  })
+}
+
+export function runReviewScan(id: string) {
+  return request<CandidateOut[]>(`/api/sessions/${id}/review-scan`, {
+    method: "POST",
+  })
+}
+
+export function runListUp(id: string) {
+  return request<CandidateOut[]>(`/api/sessions/${id}/list-up`, {
     method: "POST",
   })
 }

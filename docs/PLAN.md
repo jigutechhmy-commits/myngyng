@@ -31,8 +31,8 @@ MVP 단계에서 단순화하는 부분:
 | M0 | 프로젝트 셋업 (모노레포, DB, 인프라 골격) | 7장 아키텍처 | done |
 | M1 | 사용자 입력 플로우 UI | 3장 STEP 1~5 | done |
 | M2 | PLAN & RESEARCH (사양서 + 후보군) | 4장 Phase 1~2 | done |
-| M3 | REVIEW SCAN & LIST UP (후기 평가 + 1차 압축) | 4장 Phase 3~4 | progress |
-| M4 | DIGGING & FINAL ENTRY (세계관/Decision Narrative + 카드) | 4장 Phase 5~6 | todo |
+| M3 | REVIEW SCAN & LIST UP (후기 평가 + 1차 압축) | 4장 Phase 3~4 | done |
+| M4 | DIGGING & FINAL ENTRY (세계관/Decision Narrative + 카드) | 4장 Phase 5~6 | progress |
 | M5 | CHOICE (토너먼트 UI) | 4장 Phase 7 | todo |
 | M6 | Decision Journal & Choice Confidence | 5~6장 | todo |
 | M7 | Post-MVP 고도화 (실 크롤러, 멀티 카테고리, Fact Shield 강화) | 장기 비전 | todo |
@@ -97,13 +97,16 @@ PRD 7장 기준.
 - [x] PLAN/RESEARCH 결과 노출 화면 (`/session/[id]`: 사양서 + 후보 리스트)
 - [x] phase 가드 (created→plan→research 순서 강제, 409) + pytest e2e 테스트
 
-### M3. REVIEW SCAN & LIST UP (Phase 3~4)
-- [ ] **REVIEW SCAN**: 후보별 후기 수집/요약 (MVP: AI 기반 요약 + 출처 링크)
-  - 우선순위 소스(Reddit/커뮤니티/리뷰 등)는 Post-MVP에서 실제 크롤러로 대체
+### M3. REVIEW SCAN & LIST UP (Phase 3~4) — `done`
+- [x] **REVIEW SCAN**: 후보별 후기 요약 + 출처 표기 (review_summaries, 마이그레이션 0003)
   - 요구사항 적합도 / 예산 적합도 / 만족도 (각 1~5점) 산출
-- [ ] **LIST UP**: 자동 탈락 로직 구현
-  - 예산 초과 / 필수 기능 없음 / 치명적 결함 / 낮은 만족도 기준 필터
-- [ ] 1차 후보 리스트 결과 화면
+  - 필수 기능 누락 / 치명적 결함 플래그 (LIST UP 판단 재료)
+  - 우선순위 소스(Reddit/커뮤니티 등) 실제 크롤링은 Post-MVP (M7)
+- [x] **LIST UP**: 자동 탈락 로직 (코드 기반 룰)
+  - 예산 초과(예산×(1+오차)) / 필수 기능 없음 / 치명적 결함 / 낮은 만족도(≤2)
+  - status: shortlisted / eliminated + elimination_reason 기록
+- [x] 1차 후보 리스트 결과 화면 (통과/탈락 구분, 점수·후기·탈락 사유 표시)
+- [x] pytest: 전체 플로우(PLAN→RESEARCH→REVIEW SCAN→LIST UP) + 탈락 사유 검증
 
 ### M4. DIGGING & FINAL ENTRY (Phase 5~6)
 - [ ] **DIGGING**: 제품별 "세계관" 조사 → Decision Narrative 생성

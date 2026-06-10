@@ -35,7 +35,7 @@ def test_categories():
     assert detail["spec_schema"]["fields"]
 
 
-def test_plan_then_research(session_id: str):
+def test_full_engine_flow(session_id: str):
     # Phase 1. PLAN
     res = client.post(f"/api/sessions/{session_id}/plan")
     assert res.status_code == 200
@@ -58,8 +58,35 @@ def test_plan_then_research(session_id: str):
     assert res.status_code == 200
     assert len(res.json()) == len(candidates)
 
+    # Phase 3. REVIEW SCAN
+    res = client.post(f"/api/sessions/{session_id}/review-scan")
+    assert res.status_code == 200
+    reviewed = res.json()
+    assert all(c["review"] is not None for c in reviewed)
+    assert all(1 <= c["review"]["satisfaction_score"] <= 5 for c in reviewed)
+    assert all(c["review"]["sources"] for c in reviewed)
+
+    # Phase 4. LIST UP — 자동 탈락 검증
+    res = client.post(f"/api/sessions/{session_id}/list-up")
+    assert res.status_code == 200
+    final = {c["name"]: c for c in res.json()}
+
+    # 예산 2,500,000 ±10% → 상한 2,750,000원
+    assert final["MacBook Pro 14 (M4 Pro)"]["elimination_reason"] == "budget_exceeded"
+    # ARM/필수 기능 미달
+    assert final["Surface Pro 11"]["elimination_reason"] == "missing_required"
+    assert final["Surface Laptop 7"]["elimination_reason"] == "missing_required"
+    # 낮은 만족도 (<=2)
+    assert final["Swift Go 14 AI"]["elimination_reason"] == "low_satisfaction"
+    # 통과 후보
+    assert final["ThinkPad X1 Carbon Gen 13"]["status"] == "shortlisted"
+    assert final["ROG Zephyrus G14"]["status"] == "shortlisted"
+
+    shortlisted = [c for c in final.values() if c["status"] == "shortlisted"]
+    assert len(shortlisted) >= 4
+
     # 세션 phase 갱신 확인
-    assert client.get(f"/api/sessions/{session_id}").json()["engine_phase"] == "research"
+    assert client.get(f"/api/sessions/{session_id}").json()["engine_phase"] == "list_up"
 
 
 def test_research_requires_plan(session_id: str):

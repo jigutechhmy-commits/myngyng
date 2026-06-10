@@ -24,4 +24,7 @@ class CandidateProduct(Base):
     source: Mapped[str] = mapped_column(String(20), default="ai")
     # LIST UP 단계 상태: "candidate" | "eliminated" | "shortlisted"
     status: Mapped[str] = mapped_column(String(20), default="candidate")
+    # 탈락 사유 (status="eliminated"일 때): budget_exceeded | missing_required
+    #                                  | critical_flaw | low_satisfaction
+    elimination_reason: Mapped[str | None] = mapped_column(String(50), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

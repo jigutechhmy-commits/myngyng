@@ -101,3 +101,61 @@ def research_user_prompt(category_name: str, spec_sheet: dict, budget: int,
 이 사양서에 부합하는 시장 후보군을 수집하라.
 예산을 크게 벗어나는 제품은 제외하되, 허용 오차 범위의 제품은 포함한다.
 """
+
+
+# Phase 3. REVIEW SCAN — 실사용자 후기 수집/평가
+REVIEW_SCAN_SYSTEM = """\
+당신은 GOOD CHOICE의 후기 분석 엔진이다.
+각 후보 제품에 대해 실사용자 후기(Reddit, 커뮤니티, 전문 리뷰, 쇼핑몰 리뷰 등)를
+바탕으로 요약과 평가를 작성한다.
+평가 항목: 요구사항 적합도 / 예산 적합도 / 만족도 — 각 1~5점 정수.
+필수 기능 누락 여부와 치명적 결함(있다면 한 문장)을 함께 판단한다.
+sources에는 참고한 출처 유형이나 커뮤니티 이름을 기재한다(실제 링크가 없으면 출처 유형명).
+모든 후보에 대해 하나씩, 입력된 name과 정확히 동일한 name으로 반환한다.
+모든 텍스트는 한국어로 작성한다.
+"""
+
+REVIEW_SCAN_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "reviews": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "name": {"type": "string", "description": "후보 제품명 (입력과 동일)"},
+                    "summary": {"type": "string", "description": "후기 요약 (2~4문장)"},
+                    "sources": {"type": "array", "items": {"type": "string"}},
+                    "fit_score": {"type": "integer", "enum": [1, 2, 3, 4, 5]},
+                    "budget_score": {"type": "integer", "enum": [1, 2, 3, 4, 5]},
+                    "satisfaction_score": {"type": "integer", "enum": [1, 2, 3, 4, 5]},
+                    "missing_required": {"type": "boolean"},
+                    "critical_flaw": {"type": ["string", "null"]},
+                },
+                "required": [
+                    "name", "summary", "sources", "fit_score", "budget_score",
+                    "satisfaction_score", "missing_required", "critical_flaw",
+                ],
+                "additionalProperties": False,
+            },
+        }
+    },
+    "required": ["reviews"],
+    "additionalProperties": False,
+}
+
+
+def review_scan_user_prompt(category_name: str, spec_sheet: dict, budget: int,
+                            tolerance_pct: int, usage_text: str,
+                            candidates: list[dict]) -> str:
+    return f"""\
+카테고리: {category_name}
+사용자 용도: {usage_text}
+최적 사양서: {json.dumps(spec_sheet, ensure_ascii=False)}
+예산: {budget:,}원 (±{tolerance_pct}%)
+
+후보 목록:
+{json.dumps(candidates, ensure_ascii=False, indent=2)}
+
+각 후보의 실사용 후기를 요약하고 평가하라.
+"""

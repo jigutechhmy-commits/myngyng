@@ -3,7 +3,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from app.db.base import get_db
-from app.models import CandidateProduct, RequestSession
+from app.models import CandidateProduct, RequestSession, ReviewSummary
 from app.services import engine
 
 router = APIRouter()
@@ -34,6 +34,18 @@ class SessionOut(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class ReviewOut(BaseModel):
+    summary: str
+    sources: list[str]
+    fit_score: int
+    budget_score: int
+    satisfaction_score: int
+    missing_required: bool
+    critical_flaw: str | None
+
+    model_config = {"from_attributes": True}
+
+
 class CandidateOut(BaseModel):
     id: str
     name: str
@@ -42,8 +54,31 @@ class CandidateOut(BaseModel):
     specs: dict
     source: str
     status: str
+    elimination_reason: str | None = None
+    review: ReviewOut | None = None
 
     model_config = {"from_attributes": True}
+
+
+def _attach_reviews(db: Session, candidates: list[CandidateProduct]) -> list[CandidateOut]:
+    reviews = {
+        r.candidate_id: r
+        for r in db.query(ReviewSummary)
+        .filter(ReviewSummary.candidate_id.in_([c.id for c in candidates]))
+        .all()
+    }
+    return [
+        CandidateOut.model_validate(c, from_attributes=True).model_copy(
+            update={
+                "review": (
+                    ReviewOut.model_validate(reviews[c.id], from_attributes=True)
+                    if c.id in reviews
+                    else None
+                )
+            }
+        )
+        for c in candidates
+    ]
 
 
 @router.post("", response_model=SessionOut, status_code=201)
@@ -81,18 +116,34 @@ def run_plan(session_id: str, db: Session = Depends(get_db)) -> RequestSession:
 
 
 @router.post("/{session_id}/research", response_model=list[CandidateOut])
-def run_research(session_id: str, db: Session = Depends(get_db)) -> list[CandidateProduct]:
+def run_research(session_id: str, db: Session = Depends(get_db)) -> list[CandidateOut]:
     """Phase 2. RESEARCH — 시장 후보군 수집."""
     session = _get_session_or_404(db, session_id)
-    return engine.run_research(db, session)
+    return _attach_reviews(db, engine.run_research(db, session))
+
+
+@router.post("/{session_id}/review-scan", response_model=list[CandidateOut])
+def run_review_scan(session_id: str, db: Session = Depends(get_db)) -> list[CandidateOut]:
+    """Phase 3. REVIEW SCAN — 후보별 후기 요약/평가."""
+    session = _get_session_or_404(db, session_id)
+    engine.run_review_scan(db, session)
+    return _attach_reviews(db, engine.session_candidates(db, session))
+
+
+@router.post("/{session_id}/list-up", response_model=list[CandidateOut])
+def run_list_up(session_id: str, db: Session = Depends(get_db)) -> list[CandidateOut]:
+    """Phase 4. LIST UP — 자동 탈락 적용."""
+    session = _get_session_or_404(db, session_id)
+    return _attach_reviews(db, engine.run_list_up(db, session))
 
 
 @router.get("/{session_id}/candidates", response_model=list[CandidateOut])
-def list_candidates(session_id: str, db: Session = Depends(get_db)) -> list[CandidateProduct]:
+def list_candidates(session_id: str, db: Session = Depends(get_db)) -> list[CandidateOut]:
     _get_session_or_404(db, session_id)
-    return (
+    candidates = (
         db.query(CandidateProduct)
         .filter(CandidateProduct.session_id == session_id)
         .order_by(CandidateProduct.price)
         .all()
     )
+    return _attach_reviews(db, candidates)
