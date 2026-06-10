@@ -193,6 +193,31 @@ export function getTournament(id: string) {
   return request<TournamentOut>(`/api/sessions/${id}/tournament`)
 }
 
+export interface JournalOut {
+  id: string
+  winner_candidate_id: string
+  choice_log: { round_label: string; picked: string; over: string; reason: string | null }[]
+  decided_at: string
+  confidence: {
+    fit: number | null
+    budget: number | null
+    review: number | null
+    long_term: number | null
+    overall: number | null
+  }
+  followup_due_at: string
+  followup_satisfaction: number | null
+  followup_answered_at: string | null
+}
+
+export function createJournal(id: string) {
+  return request<JournalOut>(`/api/sessions/${id}/journal`, { method: "POST" })
+}
+
+export function getJournal(id: string) {
+  return request<JournalOut>(`/api/sessions/${id}/journal`)
+}
+
 export function chooseWinner(
   id: string,
   matchId: string,

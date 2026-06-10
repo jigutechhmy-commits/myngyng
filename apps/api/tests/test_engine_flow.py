@@ -146,6 +146,39 @@ def test_full_engine_flow(session_id: str):
     # 세션 phase 확인
     assert client.get(f"/api/sessions/{session_id}").json()["engine_phase"] == "choice"
 
+    # Decision Journal — 선택 기록 + Choice Confidence
+    res = client.post(f"/api/sessions/{session_id}/journal")
+    assert res.status_code == 201
+    journal = res.json()
+    assert journal["winner_candidate_id"] == t["winner_candidate_id"]
+    assert len(journal["choice_log"]) == 3
+    assert journal["choice_log"][0]["reason"] == "테스트 선택"
+    conf = journal["confidence"]
+    assert conf["long_term"] is None  # 재조사 전
+    assert conf["fit"] and conf["budget"] and conf["review"]
+    assert conf["overall"] == round((conf["fit"] + conf["budget"] + conf["review"]) / 3)
+    assert journal["followup_due_at"]
+
+    # 중복 생성 거부, phase=done
+    assert client.post(f"/api/sessions/{session_id}/journal").status_code == 409
+    assert client.get(f"/api/sessions/{session_id}").json()["engine_phase"] == "done"
+
+    # 6개월 후 만족도 재조사
+    res = client.post(
+        f"/api/sessions/{session_id}/journal/followup", json={"satisfaction": 4}
+    )
+    assert res.status_code == 200
+    journal = res.json()
+    assert journal["followup_satisfaction"] == 4
+    assert journal["confidence"]["long_term"] == 80
+    assert journal["followup_answered_at"]
+
+    # 재조사 중복 응답 거부
+    res = client.post(
+        f"/api/sessions/{session_id}/journal/followup", json={"satisfaction": 5}
+    )
+    assert res.status_code == 409
+
 
 def test_research_requires_plan(session_id: str):
     res = client.post(f"/api/sessions/{session_id}/research")

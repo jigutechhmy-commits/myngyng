@@ -34,7 +34,7 @@ MVP 단계에서 단순화하는 부분:
 | M3 | REVIEW SCAN & LIST UP (후기 평가 + 1차 압축) | 4장 Phase 3~4 | done |
 | M4 | DIGGING & FINAL ENTRY (세계관/Decision Narrative + 카드) | 4장 Phase 5~6 | done |
 | M5 | CHOICE (토너먼트 UI) | 4장 Phase 7 | done |
-| M6 | Decision Journal & Choice Confidence | 5~6장 | progress |
+| M6 | Decision Journal & Choice Confidence | 5~6장 | done |
 | M7 | Post-MVP 고도화 (실 크롤러, 멀티 카테고리, Fact Shield 강화) | 장기 비전 | todo |
 
 권장 진행 순서: M0 → M1 → M2 → M3 → M4 → M5 → M6 (순차), M7은 별도 백로그.
@@ -126,11 +126,13 @@ PRD 7장 기준.
 - [x] 라운드 자동 진행/우승 확정, 종료 후 선택 기록 타임라인 표시
 - [x] pytest: 브래킷 크기/중복 생성 409/결승까지 진행/종료 후 선택 거부
 
-### M6. Decision Journal & Choice Confidence
-- [ ] Decision Journal 데이터 모델: 선택 제품/선택 이유/선택 시점
-- [ ] Choice Confidence 점수 계산: 요구사항 적합도/예산 적합도/후기 만족도/장기 만족도
-- [ ] 최종 추천 결과 화면(Choice Confidence 표시 포함)
-- [ ] 6개월 후 만족도 재조사 트리거 설계 (알림/스케줄러는 Post-MVP 가능)
+### M6. Decision Journal & Choice Confidence — `done`
+- [x] Decision Journal 데이터 모델: 선택 제품/라운드별 선택 이유/선택 시점 (마이그레이션 0006)
+- [x] Choice Confidence 계산: 요구사항/예산/후기 (REVIEW SCAN 점수 환산, 0~100%)
+  - 장기 만족도는 재조사 전 null, 응답 시 overall 재계산
+- [x] 최종 결과 화면: 우승 카드 + Confidence 게이지 + 선택 기록 타임라인
+- [x] 6개월 후 만족도 재조사: followup_due_at 저장 + 응답 API
+  (`POST /journal/followup`) — 알림/스케줄러는 Post-MVP (M7)
 
 ### M7. Post-MVP 백로그
 - [ ] 실제 크롤러 파이프라인 (Reddit/Discord/제조사 포럼/Youtube/커뮤니티/쇼핑몰 리뷰)
@@ -163,10 +165,14 @@ PRD 7장 기준.
 
 ---
 
-## 6. MVP Definition of Done
+## 6. MVP Definition of Done — ✅ 달성 (M0~M6 완료)
 
-- 사용자가 STEP1~5 입력을 완료하면, 노트북 카테고리 기준으로
+- [x] 사용자가 STEP1~5 입력을 완료하면, 노트북 카테고리 기준으로
   Good Choice Engine이 Phase1~7을 거쳐 토너먼트를 생성한다.
-- 토너먼트 진행 후 Decision Journal에 선택 결과/이유가 저장되고,
+- [x] 토너먼트 진행 후 Decision Journal에 선택 결과/이유가 저장되고,
   Choice Confidence 점수가 함께 표시된다.
-- 모든 후보/카드 데이터에 출처(AI 생성 여부 포함) 정보가 표기된다.
+- [x] 모든 후보/카드 데이터에 출처(AI 생성 여부 포함) 정보가 표기된다.
+
+> 비고: 본 실행 환경에는 AI API 키가 없어 MockProvider(결정적 노트북
+> 픽스처)로 전 구간을 검증했다. `ANTHROPIC_API_KEY` 설정 시 실제 AI
+> 호출로 자동 전환된다(structured outputs 사용). 남은 작업은 M7 백로그.

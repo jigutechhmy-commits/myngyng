@@ -10,7 +10,7 @@ from app.models import (
     RequestSession,
     ReviewSummary,
 )
-from app.services import engine, tournament as tournament_service
+from app.services import engine, journal as journal_service, tournament as tournament_service
 
 router = APIRouter()
 
@@ -318,3 +318,59 @@ def choose_winner(
         db, t, match_id, payload.winner_candidate_id, payload.reason
     )
     return _tournament_out(db, t)
+
+
+class JournalOut(BaseModel):
+    id: str
+    winner_candidate_id: str
+    choice_log: list[dict]
+    decided_at: str
+    confidence: dict
+    followup_due_at: str
+    followup_satisfaction: int | None
+    followup_answered_at: str | None
+
+    model_config = {"from_attributes": True}
+
+    @classmethod
+    def from_entry(cls, entry) -> "JournalOut":
+        return cls(
+            id=entry.id,
+            winner_candidate_id=entry.winner_candidate_id,
+            choice_log=entry.choice_log,
+            decided_at=entry.decided_at.isoformat(),
+            confidence=entry.confidence,
+            followup_due_at=entry.followup_due_at.isoformat(),
+            followup_satisfaction=entry.followup_satisfaction,
+            followup_answered_at=(
+                entry.followup_answered_at.isoformat() if entry.followup_answered_at else None
+            ),
+        )
+
+
+class FollowupPayload(BaseModel):
+    satisfaction: int = Field(ge=1, le=5, description="6개월 후 만족도 (1~5)")
+
+
+@router.post("/{session_id}/journal", response_model=JournalOut, status_code=201)
+def create_journal(session_id: str, db: Session = Depends(get_db)) -> JournalOut:
+    """Decision Journal — 최종 선택 기록 + Choice Confidence 산출."""
+    session = _get_session_or_404(db, session_id)
+    return JournalOut.from_entry(journal_service.create_journal_entry(db, session))
+
+
+@router.get("/{session_id}/journal", response_model=JournalOut)
+def get_journal(session_id: str, db: Session = Depends(get_db)) -> JournalOut:
+    session = _get_session_or_404(db, session_id)
+    return JournalOut.from_entry(journal_service.get_journal_entry(db, session))
+
+
+@router.post("/{session_id}/journal/followup", response_model=JournalOut)
+def record_followup(
+    session_id: str, payload: FollowupPayload, db: Session = Depends(get_db)
+) -> JournalOut:
+    """6개월 후 만족도 재조사 응답 기록."""
+    session = _get_session_or_404(db, session_id)
+    return JournalOut.from_entry(
+        journal_service.record_followup(db, session, payload.satisfaction)
+    )

@@ -6,9 +6,12 @@ import {
   CandidateOut,
   CardOut,
   chooseWinner,
+  createJournal,
   createTournament,
+  getJournal,
   getSession,
   getTournament,
+  JournalOut,
   listCandidates,
   listCards,
   MatchOut,
@@ -30,6 +33,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
+import { Progress } from "@/components/ui/progress"
 import { Textarea } from "@/components/ui/textarea"
 
 const PHASE_LABELS: Record<string, string> = {
@@ -72,6 +76,7 @@ export default function SessionPage({
   const [candidates, setCandidates] = useState<CandidateOut[]>([])
   const [cards, setCards] = useState<CardOut[]>([])
   const [tournament, setTournament] = useState<TournamentOut | null>(null)
+  const [journal, setJournal] = useState<JournalOut | null>(null)
   const [running, setRunning] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
@@ -86,6 +91,9 @@ export default function SessionPage({
     }
     if (["choice", "done"].includes(s.engine_phase)) {
       setTournament(await getTournament(id))
+    }
+    if (s.engine_phase === "done") {
+      setJournal(await getJournal(id))
     }
     return s
   }, [id])
@@ -170,7 +178,36 @@ export default function SessionPage({
         </Card>
       )}
 
-      {tournament && (
+      {journal && tournament && (
+        <JournalSection journal={journal} cards={cards} />
+      )}
+
+      {!journal && tournament?.status === "done" && (
+        <Card className="border-primary">
+          <CardHeader>
+            <CardTitle>🏆 월드컵 종료</CardTitle>
+            <CardDescription>
+              선택을 Decision Journal에 기록하고 Choice Confidence를 확인하세요.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button
+              onClick={async () => {
+                try {
+                  setJournal(await createJournal(id))
+                  await refresh()
+                } catch {
+                  setError("기록 저장에 실패했습니다.")
+                }
+              }}
+            >
+              선택 기록하기
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
+      {!journal && tournament && tournament.status !== "done" && (
         <TournamentSection
           sessionId={id}
           tournament={tournament}
@@ -298,53 +335,6 @@ function TournamentSection({
     }
   }
 
-  if (tournament.status === "done") {
-    const winner = tournament.winner_candidate_id
-      ? cardById.get(tournament.winner_candidate_id)
-      : null
-    return (
-      <div className="space-y-4">
-        <Card className="border-primary">
-          <CardHeader>
-            <CardTitle>🏆 당신의 선택</CardTitle>
-            <CardDescription>
-              월드컵이 끝났습니다. Decision Journal 기록은 M6에서 이어집니다.
-            </CardDescription>
-          </CardHeader>
-        </Card>
-        {winner && <FinalCard card={winner} />}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">선택 기록</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ul className="space-y-2 text-sm">
-              {tournament.matches.map((m) => {
-                const w = m.winner_candidate_id ? cardById.get(m.winner_candidate_id) : null
-                const loserId =
-                  m.winner_candidate_id === m.candidate_a_id
-                    ? m.candidate_b_id
-                    : m.candidate_a_id
-                const l = cardById.get(loserId)
-                return (
-                  <li key={m.id} className="text-muted-foreground">
-                    <span className="text-foreground font-medium">
-                      [{roundLabel(m.round_no, tournament.size)}]
-                    </span>{" "}
-                    {w?.name} <span className="text-xs">vs {l?.name}</span>
-                    {m.choice_reason && (
-                      <span className="block pl-4 text-xs">— {m.choice_reason}</span>
-                    )}
-                  </li>
-                )
-              })}
-            </ul>
-          </CardContent>
-        </Card>
-      </div>
-    )
-  }
-
   if (!currentMatch) return null
   const a = cardById.get(currentMatch.candidate_a_id)
   const b = cardById.get(currentMatch.candidate_b_id)
@@ -384,6 +374,77 @@ function TournamentSection({
           AI는 정답을 강요하지 않습니다. 결정은 당신의 몫입니다.
         </p>
       </div>
+    </div>
+  )
+}
+
+function JournalSection({
+  journal,
+  cards,
+}: {
+  journal: JournalOut
+  cards: CardOut[]
+}) {
+  const winner = cards.find((c) => c.candidate_id === journal.winner_candidate_id)
+  const conf = journal.confidence
+  const CONF_LABELS: [keyof typeof conf, string][] = [
+    ["fit", "요구사항 적합도"],
+    ["budget", "예산 적합도"],
+    ["review", "후기 만족도"],
+    ["long_term", "장기 만족도"],
+  ]
+  return (
+    <div className="space-y-4">
+      <Card className="border-primary">
+        <CardHeader>
+          <CardTitle>🏆 당신의 선택: {winner?.name}</CardTitle>
+          <CardDescription>
+            {new Date(journal.decided_at).toLocaleDateString("ko-KR")} 결정 ·{" "}
+            {new Date(journal.followup_due_at).toLocaleDateString("ko-KR")}에 만족도
+            재조사가 예정되어 있습니다.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <div className="flex items-baseline justify-between">
+              <span className="text-sm font-medium">Choice Confidence</span>
+              <span className="text-2xl font-bold">
+                {conf.overall !== null ? `${conf.overall}%` : "—"}
+              </span>
+            </div>
+            {CONF_LABELS.map(([key, label]) => (
+              <div key={key} className="space-y-1">
+                <div className="text-muted-foreground flex justify-between text-xs">
+                  <span>{label}</span>
+                  <span>{conf[key] !== null ? `${conf[key]}%` : "재조사 전"}</span>
+                </div>
+                <Progress value={conf[key] ?? 0} className="h-1.5" />
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      {winner && <FinalCard card={winner} />}
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Decision Journal — 선택 기록</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <ul className="space-y-2 text-sm">
+            {journal.choice_log.map((log, i) => (
+              <li key={i} className="text-muted-foreground">
+                <span className="text-foreground font-medium">[{log.round_label}]</span>{" "}
+                {log.picked} <span className="text-xs">vs {log.over}</span>
+                {log.reason && (
+                  <span className="block pl-4 text-xs">— {log.reason}</span>
+                )}
+              </li>
+            ))}
+          </ul>
+        </CardContent>
+      </Card>
     </div>
   )
 }
