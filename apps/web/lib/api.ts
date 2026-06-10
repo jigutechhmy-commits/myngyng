@@ -124,3 +124,43 @@ export function runListUp(id: string) {
 export function listCandidates(id: string) {
   return request<CandidateOut[]>(`/api/sessions/${id}/candidates`)
 }
+
+export interface NarrativeOut {
+  narrative: string
+  story: string
+  digging_scores: Record<string, number>
+  sources: string[]
+  ai_inferred: boolean
+}
+
+export interface CardOut {
+  candidate_id: string
+  name: string
+  brand: string
+  price: number
+  headline: string
+  key_specs: string[]
+  pros: string[]
+  cons: string[]
+  review_digest: string
+  worldview: string
+  recommended_for: string[]
+  not_recommended_for: string[]
+  narrative: NarrativeOut | null
+}
+
+export function runDigging(id: string) {
+  return request<CandidateOut[]>(`/api/sessions/${id}/digging`, {
+    method: "POST",
+  })
+}
+
+export function runFinalEntry(id: string) {
+  return request<CardOut[]>(`/api/sessions/${id}/final-entry`, {
+    method: "POST",
+  })
+}
+
+export function listCards(id: string) {
+  return request<CardOut[]>(`/api/sessions/${id}/cards`)
+}

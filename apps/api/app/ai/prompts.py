@@ -159,3 +159,133 @@ def review_scan_user_prompt(category_name: str, spec_sheet: dict, budget: int,
 
 각 후보의 실사용 후기를 요약하고 평가하라.
 """
+
+
+# Phase 5. DIGGING — 제품 세계관 조사 → Decision Narrative
+DIGGING_SYSTEM = """\
+당신은 GOOD CHOICE의 세계관 조사 엔진이다.
+단순 스펙 비교가 아니라 각 제품의 '세계관'을 조사한다:
+탄생 배경, 개발 철학, 브랜드 철학, 팬덤, 커뮤니티 평가, 역사, 성공/실패 사례, 숨겨진 이야기.
+
+각 제품에 대해:
+- narrative: 제품의 정체성을 한 문장으로 압축한 Decision Narrative
+  (예: ThinkPad → "전자제품이 아니라 공구를 만들겠다는 IBM 철학의 후계자")
+- story: 세계관 서술 3~6문장
+- digging_scores: 철학/역사성/팬덤/독창성/커뮤니티평가/스토리성 각 0~10점 정수
+- sources: 근거 출처(공식 자료/인터뷰/커뮤니티 등, 링크가 없으면 출처 유형명)
+
+사실에 근거하되 확인 불가한 내용은 쓰지 않는다. 입력된 name과 동일한 name으로 반환한다.
+모든 텍스트는 한국어로 작성한다.
+"""
+
+DIGGING_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "narratives": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "name": {"type": "string"},
+                    "narrative": {"type": "string", "description": "한 줄 Decision Narrative"},
+                    "story": {"type": "string", "description": "세계관 서술"},
+                    "digging_scores": {
+                        "type": "object",
+                        "properties": {
+                            "philosophy": {"type": "integer"},
+                            "history": {"type": "integer"},
+                            "fandom": {"type": "integer"},
+                            "originality": {"type": "integer"},
+                            "community": {"type": "integer"},
+                            "story": {"type": "integer"},
+                        },
+                        "required": [
+                            "philosophy", "history", "fandom",
+                            "originality", "community", "story",
+                        ],
+                        "additionalProperties": False,
+                    },
+                    "sources": {"type": "array", "items": {"type": "string"}},
+                },
+                "required": ["name", "narrative", "story", "digging_scores", "sources"],
+                "additionalProperties": False,
+            },
+        }
+    },
+    "required": ["narratives"],
+    "additionalProperties": False,
+}
+
+
+def digging_user_prompt(category_name: str, candidates: list[dict]) -> str:
+    return f"""\
+카테고리: {category_name}
+
+1차 통과 후보:
+{json.dumps(candidates, ensure_ascii=False, indent=2)}
+
+각 후보 제품의 세계관을 조사하고 Decision Narrative를 작성하라.
+"""
+
+
+# Phase 6. FINAL ENTRY — 최종 카드 구성
+FINAL_ENTRY_SYSTEM = """\
+당신은 GOOD CHOICE의 최종 카드 작성 엔진이다.
+각 후보의 사양, 후기 요약, 세계관(Decision Narrative)을 종합해
+월드컵 토너먼트에서 사용자가 비교할 '최종 카드'를 작성한다.
+
+각 카드:
+- headline: 제품을 한 문장으로 포장하는 패키징 문구 (광고 카피처럼 매력적으로)
+- key_specs: 핵심 사양 요약 3~5개 (짧은 구문)
+- pros / cons: 장점/단점 각 2~4개
+- review_digest: 실사용 후기 요약 1~2문장
+- worldview: 세계관 요약 1~2문장
+- recommended_for / not_recommended_for: 추천/비추천 대상 각 1~3개
+
+사용자의 용도와 우선순위 관점에서 작성한다. 입력된 name과 동일한 name으로 반환한다.
+모든 텍스트는 한국어로 작성한다.
+"""
+
+FINAL_ENTRY_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "cards": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "name": {"type": "string"},
+                    "headline": {"type": "string"},
+                    "key_specs": {"type": "array", "items": {"type": "string"}},
+                    "pros": {"type": "array", "items": {"type": "string"}},
+                    "cons": {"type": "array", "items": {"type": "string"}},
+                    "review_digest": {"type": "string"},
+                    "worldview": {"type": "string"},
+                    "recommended_for": {"type": "array", "items": {"type": "string"}},
+                    "not_recommended_for": {"type": "array", "items": {"type": "string"}},
+                },
+                "required": [
+                    "name", "headline", "key_specs", "pros", "cons",
+                    "review_digest", "worldview",
+                    "recommended_for", "not_recommended_for",
+                ],
+                "additionalProperties": False,
+            },
+        }
+    },
+    "required": ["cards"],
+    "additionalProperties": False,
+}
+
+
+def final_entry_user_prompt(usage_text: str, priorities: list[str],
+                            candidates: list[dict]) -> str:
+    return f"""\
+사용자 용도: {usage_text}
+우선순위: {", ".join(priorities) if priorities else "미지정"}
+
+후보 정보(사양/후기/세계관 포함):
+{json.dumps(candidates, ensure_ascii=False, indent=2)}
+
+각 후보의 최종 카드를 작성하라.
+"""

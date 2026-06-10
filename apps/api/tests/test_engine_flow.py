@@ -85,8 +85,32 @@ def test_full_engine_flow(session_id: str):
     shortlisted = [c for c in final.values() if c["status"] == "shortlisted"]
     assert len(shortlisted) >= 4
 
+    # Phase 5. DIGGING — Decision Narrative
+    res = client.post(f"/api/sessions/{session_id}/digging")
+    assert res.status_code == 200
+
+    # Phase 6. FINAL ENTRY — 최종 카드
+    res = client.post(f"/api/sessions/{session_id}/final-entry")
+    assert res.status_code == 200
+    cards = res.json()
+    assert len(cards) == len(shortlisted)
+    for card in cards:
+        assert card["headline"]
+        assert card["pros"] and card["cons"]
+        assert card["recommended_for"]
+        assert card["narrative"]["narrative"]
+        scores = card["narrative"]["digging_scores"]
+        assert set(scores) == {
+            "philosophy", "history", "fandom", "originality", "community", "story"
+        }
+        assert all(0 <= v <= 10 for v in scores.values())
+        assert card["narrative"]["ai_inferred"] is True  # Fact Shield 표기
+
+    # 카드 조회
+    assert len(client.get(f"/api/sessions/{session_id}/cards").json()) == len(cards)
+
     # 세션 phase 갱신 확인
-    assert client.get(f"/api/sessions/{session_id}").json()["engine_phase"] == "list_up"
+    assert client.get(f"/api/sessions/{session_id}").json()["engine_phase"] == "final_entry"
 
 
 def test_research_requires_plan(session_id: str):

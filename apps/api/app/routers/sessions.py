@@ -3,7 +3,13 @@ from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from app.db.base import get_db
-from app.models import CandidateProduct, RequestSession, ReviewSummary
+from app.models import (
+    CandidateProduct,
+    DecisionNarrative,
+    FinalEntryCard,
+    RequestSession,
+    ReviewSummary,
+)
 from app.services import engine
 
 router = APIRouter()
@@ -147,3 +153,96 @@ def list_candidates(session_id: str, db: Session = Depends(get_db)) -> list[Cand
         .all()
     )
     return _attach_reviews(db, candidates)
+
+
+class NarrativeOut(BaseModel):
+    narrative: str
+    story: str
+    digging_scores: dict
+    sources: list[str]
+    ai_inferred: bool
+
+    model_config = {"from_attributes": True}
+
+
+class CardOut(BaseModel):
+    candidate_id: str
+    name: str
+    brand: str
+    price: int
+    headline: str
+    key_specs: list[str]
+    pros: list[str]
+    cons: list[str]
+    review_digest: str
+    worldview: str
+    recommended_for: list[str]
+    not_recommended_for: list[str]
+    narrative: NarrativeOut | None = None
+
+
+def _build_cards(db: Session, session: RequestSession) -> list[CardOut]:
+    candidates = engine.shortlisted_candidates(db, session)
+    candidate_ids = [c.id for c in candidates]
+    cards = {
+        card.candidate_id: card
+        for card in db.query(FinalEntryCard)
+        .filter(FinalEntryCard.candidate_id.in_(candidate_ids))
+        .all()
+    }
+    narratives = {
+        n.candidate_id: n
+        for n in db.query(DecisionNarrative)
+        .filter(DecisionNarrative.candidate_id.in_(candidate_ids))
+        .all()
+    }
+    result = []
+    for c in candidates:
+        card = cards.get(c.id)
+        if card is None:
+            continue
+        narrative = narratives.get(c.id)
+        result.append(
+            CardOut(
+                candidate_id=c.id,
+                name=c.name,
+                brand=c.brand,
+                price=c.price,
+                headline=card.headline,
+                key_specs=card.key_specs,
+                pros=card.pros,
+                cons=card.cons,
+                review_digest=card.review_digest,
+                worldview=card.worldview,
+                recommended_for=card.recommended_for,
+                not_recommended_for=card.not_recommended_for,
+                narrative=(
+                    NarrativeOut.model_validate(narrative, from_attributes=True)
+                    if narrative
+                    else None
+                ),
+            )
+        )
+    return result
+
+
+@router.post("/{session_id}/digging", response_model=list[CandidateOut])
+def run_digging(session_id: str, db: Session = Depends(get_db)) -> list[CandidateOut]:
+    """Phase 5. DIGGING — 세계관 조사 / Decision Narrative."""
+    session = _get_session_or_404(db, session_id)
+    engine.run_digging(db, session)
+    return _attach_reviews(db, engine.session_candidates(db, session))
+
+
+@router.post("/{session_id}/final-entry", response_model=list[CardOut])
+def run_final_entry(session_id: str, db: Session = Depends(get_db)) -> list[CardOut]:
+    """Phase 6. FINAL ENTRY — 최종 카드 생성."""
+    session = _get_session_or_404(db, session_id)
+    engine.run_final_entry(db, session)
+    return _build_cards(db, session)
+
+
+@router.get("/{session_id}/cards", response_model=list[CardOut])
+def list_cards(session_id: str, db: Session = Depends(get_db)) -> list[CardOut]:
+    session = _get_session_or_404(db, session_id)
+    return _build_cards(db, session)

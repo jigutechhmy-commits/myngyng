@@ -4,8 +4,12 @@ import { use, useCallback, useEffect, useState } from "react"
 
 import {
   CandidateOut,
+  CardOut,
   getSession,
   listCandidates,
+  listCards,
+  runDigging,
+  runFinalEntry,
   runListUp,
   runPlan,
   runResearch,
@@ -48,6 +52,8 @@ const PIPELINE: { from: string; label: string; run: (id: string) => Promise<unkn
   { from: "plan", label: "RESEARCH — 시장 후보를 수집하는 중...", run: runResearch },
   { from: "research", label: "REVIEW SCAN — 실사용 후기를 분석하는 중...", run: runReviewScan },
   { from: "review_scan", label: "LIST UP — 후보를 압축하는 중...", run: runListUp },
+  { from: "list_up", label: "DIGGING — 제품의 세계관을 조사하는 중...", run: runDigging },
+  { from: "digging", label: "FINAL ENTRY — 최종 카드를 만드는 중...", run: runFinalEntry },
 ]
 
 export default function SessionPage({
@@ -58,6 +64,7 @@ export default function SessionPage({
   const { id } = use(params)
   const [session, setSession] = useState<SessionOut | null>(null)
   const [candidates, setCandidates] = useState<CandidateOut[]>([])
+  const [cards, setCards] = useState<CardOut[]>([])
   const [running, setRunning] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
@@ -66,6 +73,9 @@ export default function SessionPage({
     setSession(s)
     if (s.engine_phase !== "created" && s.engine_phase !== "plan") {
       setCandidates(await listCandidates(id))
+    }
+    if (["final_entry", "choice", "done"].includes(s.engine_phase)) {
+      setCards(await listCards(id))
     }
     return s
   }, [id])
@@ -150,12 +160,24 @@ export default function SessionPage({
         </Card>
       )}
 
-      {shortlisted.length > 0 && (
+      {cards.length > 0 && (
+        <div className="space-y-4">
+          <h2 className="text-lg font-semibold">
+            최종 엔트리 ({cards.length}) — 토너먼트는 M5에서 시작됩니다
+          </h2>
+          {cards.map((card) => (
+            <FinalCard key={card.candidate_id} card={card} />
+          ))}
+        </div>
+      )}
+
+      {cards.length === 0 && shortlisted.length > 0 && (
         <Card>
           <CardHeader>
             <CardTitle>1차 통과 후보 ({shortlisted.length})</CardTitle>
             <CardDescription>
-              자동 탈락을 통과한 후보입니다. 다음 단계(DIGGING)는 M4에서 구현됩니다.
+              자동 탈락을 통과한 후보입니다. 다음 단계(DIGGING → FINAL ENTRY)를
+              실행하세요.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -205,6 +227,111 @@ export default function SessionPage({
         </Card>
       )}
     </main>
+  )
+}
+
+function FinalCard({ card }: { card: CardOut }) {
+  const scores = card.narrative?.digging_scores ?? {}
+  const SCORE_LABELS: Record<string, string> = {
+    philosophy: "철학",
+    history: "역사성",
+    fandom: "팬덤",
+    originality: "독창성",
+    community: "커뮤니티",
+    story: "스토리성",
+  }
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-start justify-between gap-2">
+          <span>
+            {card.name}{" "}
+            <span className="text-muted-foreground text-xs font-normal">
+              {card.brand} · {card.price.toLocaleString()}원
+            </span>
+          </span>
+          {card.narrative?.ai_inferred && (
+            <Badge variant="outline" className="shrink-0 text-[10px]">
+              AI 추론 포함
+            </Badge>
+          )}
+        </CardTitle>
+        <CardDescription className="text-foreground text-base font-medium">
+          “{card.headline}”
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4 text-sm">
+        {card.narrative && (
+          <blockquote className="border-l-2 pl-3 italic">
+            {card.narrative.narrative}
+          </blockquote>
+        )}
+        <div className="flex flex-wrap gap-1.5">
+          {card.key_specs.map((s) => (
+            <Badge key={s} variant="secondary" className="text-[11px]">
+              {s}
+            </Badge>
+          ))}
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div>
+            <p className="mb-1 font-medium">장점</p>
+            <ul className="text-muted-foreground list-disc space-y-0.5 pl-4 text-xs">
+              {card.pros.map((p) => (
+                <li key={p}>{p}</li>
+              ))}
+            </ul>
+          </div>
+          <div>
+            <p className="mb-1 font-medium">단점</p>
+            <ul className="text-muted-foreground list-disc space-y-0.5 pl-4 text-xs">
+              {card.cons.map((c) => (
+                <li key={c}>{c}</li>
+              ))}
+            </ul>
+          </div>
+        </div>
+        <p className="text-muted-foreground text-xs leading-relaxed">
+          {card.review_digest}
+        </p>
+        {card.narrative && (
+          <details className="text-xs">
+            <summary className="text-muted-foreground cursor-pointer">
+              세계관 이야기 · Digging Score
+            </summary>
+            <div className="mt-2 space-y-2">
+              <p className="text-muted-foreground leading-relaxed">
+                {card.narrative.story}
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {Object.entries(scores).map(([k, v]) => (
+                  <span key={k} className="text-muted-foreground">
+                    {SCORE_LABELS[k] ?? k} {v}/10
+                  </span>
+                ))}
+              </div>
+              <p className="text-muted-foreground text-[10px]">
+                출처: {card.narrative.sources.join(", ")}
+              </p>
+            </div>
+          </details>
+        )}
+        <div className="grid gap-2 border-t pt-3 sm:grid-cols-2">
+          <div className="text-xs">
+            <span className="font-medium">추천: </span>
+            <span className="text-muted-foreground">
+              {card.recommended_for.join(", ")}
+            </span>
+          </div>
+          <div className="text-xs">
+            <span className="font-medium">비추천: </span>
+            <span className="text-muted-foreground">
+              {card.not_recommended_for.join(", ")}
+            </span>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
   )
 }
 

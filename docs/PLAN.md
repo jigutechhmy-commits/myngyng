@@ -32,8 +32,8 @@ MVP 단계에서 단순화하는 부분:
 | M1 | 사용자 입력 플로우 UI | 3장 STEP 1~5 | done |
 | M2 | PLAN & RESEARCH (사양서 + 후보군) | 4장 Phase 1~2 | done |
 | M3 | REVIEW SCAN & LIST UP (후기 평가 + 1차 압축) | 4장 Phase 3~4 | done |
-| M4 | DIGGING & FINAL ENTRY (세계관/Decision Narrative + 카드) | 4장 Phase 5~6 | progress |
-| M5 | CHOICE (토너먼트 UI) | 4장 Phase 7 | todo |
+| M4 | DIGGING & FINAL ENTRY (세계관/Decision Narrative + 카드) | 4장 Phase 5~6 | done |
+| M5 | CHOICE (토너먼트 UI) | 4장 Phase 7 | progress |
 | M6 | Decision Journal & Choice Confidence | 5~6장 | todo |
 | M7 | Post-MVP 고도화 (실 크롤러, 멀티 카테고리, Fact Shield 강화) | 장기 비전 | todo |
 
@@ -108,13 +108,14 @@ PRD 7장 기준.
 - [x] 1차 후보 리스트 결과 화면 (통과/탈락 구분, 점수·후기·탈락 사유 표시)
 - [x] pytest: 전체 플로우(PLAN→RESEARCH→REVIEW SCAN→LIST UP) + 탈락 사유 검증
 
-### M4. DIGGING & FINAL ENTRY (Phase 5~6)
-- [ ] **DIGGING**: 제품별 "세계관" 조사 → Decision Narrative 생성
-  - 조사 항목: 탄생 배경/개발철학/브랜드철학/팬덤/커뮤니티평가/경쟁제품/역사/성공·실패사례/공급망/숨겨진 이야기
-  - Digging Score 산출 (철학/역사성/팬덤/독창성/커뮤니티평가/스토리성, 각 10점)
-- [ ] **Fact Shield (1차)**: 출처 링크 수집 + AI 추론 여부 표시 플래그
-- [ ] **FINAL ENTRY**: 최종 카드 데이터 모델 및 UI
-  - 이미지/핵심 사양/장점/단점/후기 요약/세계관/추천 대상/비추천 대상/패키징 문구
+### M4. DIGGING & FINAL ENTRY (Phase 5~6) — `done`
+- [x] **DIGGING**: 제품별 "세계관" 조사 → Decision Narrative 생성 (decision_narratives, 마이그레이션 0004)
+  - 한 줄 narrative + 세계관 story (탄생 배경/철학/팬덤/역사 등)
+  - Digging Score 산출 (철학/역사성/팬덤/독창성/커뮤니티평가/스토리성, 각 0~10점)
+- [x] **Fact Shield (1차)**: 출처 목록 + ai_inferred 플래그 (UI에 "AI 추론 포함" 배지)
+- [x] **FINAL ENTRY**: 최종 카드 데이터 모델(final_entry_cards) 및 UI
+  - 핵심 사양/장점/단점/후기 요약/세계관/추천·비추천 대상/패키징 문구(headline)
+  - 이미지는 Post-MVP (M7)로 이관
 
 ### M5. CHOICE — 토너먼트 (Phase 7)
 - [ ] 토너먼트 브래킷 UI (선택된 강수에 따라 동적 생성)

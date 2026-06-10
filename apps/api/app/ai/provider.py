@@ -43,6 +43,10 @@ class MockProvider:
         from app.ai import mock_data
 
         properties = schema.get("properties", {})
+        if "narratives" in properties:
+            return mock_data.LAPTOP_NARRATIVES
+        if "cards" in properties:
+            return mock_data.LAPTOP_CARDS
         if "reviews" in properties:
             return mock_data.LAPTOP_REVIEWS
         if "candidates" in properties:

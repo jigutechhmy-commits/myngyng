@@ -8,7 +8,13 @@ from sqlalchemy.orm import Session
 
 from app.ai import prompts
 from app.ai.provider import get_provider
-from app.models import CandidateProduct, RequestSession, ReviewSummary
+from app.models import (
+    CandidateProduct,
+    DecisionNarrative,
+    FinalEntryCard,
+    RequestSession,
+    ReviewSummary,
+)
 
 SHARED_CATEGORIES_DIR = Path(__file__).resolve().parents[4] / "packages" / "shared" / "categories"
 
@@ -187,3 +193,121 @@ def run_list_up(db: Session, session: RequestSession) -> list[CandidateProduct]:
     for candidate in candidates:
         db.refresh(candidate)
     return candidates
+
+
+def shortlisted_candidates(db: Session, session: RequestSession) -> list[CandidateProduct]:
+    return (
+        db.query(CandidateProduct)
+        .filter(
+            CandidateProduct.session_id == session.id,
+            CandidateProduct.status == "shortlisted",
+        )
+        .all()
+    )
+
+
+def run_digging(db: Session, session: RequestSession) -> list[DecisionNarrative]:
+    """Phase 5. DIGGING — 제품 세계관 조사, Decision Narrative 생성."""
+    _require_phase(session, "list_up")
+    category = _category_detail(session.category_id)
+    candidates = shortlisted_candidates(db, session)
+    if not candidates:
+        raise HTTPException(status_code=409, detail="no shortlisted candidates")
+
+    result = get_provider().complete_json(
+        system=prompts.DIGGING_SYSTEM,
+        user=prompts.digging_user_prompt(
+            category_name=category["name_ko"],
+            candidates=[{"name": c.name, "brand": c.brand} for c in candidates],
+        ),
+        schema=prompts.DIGGING_SCHEMA,
+    )
+
+    by_name = {c.name: c for c in candidates}
+    narratives: list[DecisionNarrative] = []
+    for item in result["narratives"]:
+        candidate = by_name.get(item["name"])
+        if candidate is None:
+            continue
+        narratives.append(
+            DecisionNarrative(
+                candidate_id=candidate.id,
+                narrative=item["narrative"],
+                story=item["story"],
+                digging_scores=item["digging_scores"],
+                sources=item.get("sources", []),
+                ai_inferred=True,  # Fact Shield: MVP는 AI 생성 콘텐츠임을 표기
+            )
+        )
+    db.add_all(narratives)
+    session.engine_phase = "digging"
+    db.commit()
+    for narrative in narratives:
+        db.refresh(narrative)
+    return narratives
+
+
+def run_final_entry(db: Session, session: RequestSession) -> list[FinalEntryCard]:
+    """Phase 6. FINAL ENTRY — 최종 카드 생성."""
+    _require_phase(session, "digging")
+    candidates = shortlisted_candidates(db, session)
+    candidate_ids = [c.id for c in candidates]
+    reviews = {
+        r.candidate_id: r
+        for r in db.query(ReviewSummary)
+        .filter(ReviewSummary.candidate_id.in_(candidate_ids))
+        .all()
+    }
+    narratives = {
+        n.candidate_id: n
+        for n in db.query(DecisionNarrative)
+        .filter(DecisionNarrative.candidate_id.in_(candidate_ids))
+        .all()
+    }
+
+    result = get_provider().complete_json(
+        system=prompts.FINAL_ENTRY_SYSTEM,
+        user=prompts.final_entry_user_prompt(
+            usage_text=session.usage_text,
+            priorities=session.priorities,
+            candidates=[
+                {
+                    "name": c.name,
+                    "brand": c.brand,
+                    "price": c.price,
+                    "specs": c.specs,
+                    "review": reviews[c.id].summary if c.id in reviews else None,
+                    "narrative": narratives[c.id].narrative if c.id in narratives else None,
+                    "story": narratives[c.id].story if c.id in narratives else None,
+                }
+                for c in candidates
+            ],
+        ),
+        schema=prompts.FINAL_ENTRY_SCHEMA,
+    )
+
+    by_name = {c.name: c for c in candidates}
+    cards: list[FinalEntryCard] = []
+    for item in result["cards"]:
+        candidate = by_name.get(item["name"])
+        if candidate is None:
+            continue
+        cards.append(
+            FinalEntryCard(
+                candidate_id=candidate.id,
+                headline=item["headline"],
+                key_specs=item.get("key_specs", []),
+                pros=item.get("pros", []),
+                cons=item.get("cons", []),
+                review_digest=item["review_digest"],
+                worldview=item["worldview"],
+                recommended_for=item.get("recommended_for", []),
+                not_recommended_for=item.get("not_recommended_for", []),
+            )
+        )
+    db.add_all(cards)
+    session.engine_phase = "final_entry"
+    db.commit()
+    for card in cards:
+        db.refresh(card)
+    return cards
