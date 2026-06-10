@@ -24,16 +24,18 @@ MVP 단계에서 단순화하는 부분:
 
 ## 1. 마일스톤 개요
 
-| 마일스톤 | 내용 | PRD 매핑 |
-|---|---|---|
-| M0 | 프로젝트 셋업 (모노레포, DB, 인프라 골격) | 7장 아키텍처 |
-| M1 | 사용자 입력 플로우 UI | 3장 STEP 1~5 |
-| M2 | PLAN & RESEARCH (사양서 + 후보군) | 4장 Phase 1~2 |
-| M3 | REVIEW SCAN & LIST UP (후기 평가 + 1차 압축) | 4장 Phase 3~4 |
-| M4 | DIGGING & FINAL ENTRY (세계관/Decision Narrative + 카드) | 4장 Phase 5~6 |
-| M5 | CHOICE (토너먼트 UI) | 4장 Phase 7 |
-| M6 | Decision Journal & Choice Confidence | 5~6장 |
-| M7 | Post-MVP 고도화 (실 크롤러, 멀티 카테고리, Fact Shield 강화) | 장기 비전 |
+상태 표기 원칙: 작업 착수 시 `progress`, 완료 시 `done`, 미착수는 `todo`.
+
+| 마일스톤 | 내용 | PRD 매핑 | 상태 |
+|---|---|---|---|
+| M0 | 프로젝트 셋업 (모노레포, DB, 인프라 골격) | 7장 아키텍처 | progress |
+| M1 | 사용자 입력 플로우 UI | 3장 STEP 1~5 | todo |
+| M2 | PLAN & RESEARCH (사양서 + 후보군) | 4장 Phase 1~2 | todo |
+| M3 | REVIEW SCAN & LIST UP (후기 평가 + 1차 압축) | 4장 Phase 3~4 | todo |
+| M4 | DIGGING & FINAL ENTRY (세계관/Decision Narrative + 카드) | 4장 Phase 5~6 | todo |
+| M5 | CHOICE (토너먼트 UI) | 4장 Phase 7 | todo |
+| M6 | Decision Journal & Choice Confidence | 5~6장 | todo |
+| M7 | Post-MVP 고도화 (실 크롤러, 멀티 카테고리, Fact Shield 강화) | 장기 비전 | todo |
 
 권장 진행 순서: M0 → M1 → M2 → M3 → M4 → M5 → M6 (순차), M7은 별도 백로그.
 
