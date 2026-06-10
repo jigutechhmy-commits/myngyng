@@ -1,0 +1,10 @@
+{
+  "categories": [
+    { "id": "laptop", "name_ko": "노트북", "enabled": true },
+    { "id": "car", "name_ko": "자동차", "enabled": false },
+    { "id": "chair", "name_ko": "의자", "enabled": false },
+    { "id": "monitor", "name_ko": "모니터", "enabled": false },
+    { "id": "travel", "name_ko": "여행지", "enabled": false },
+    { "id": "camera", "name_ko": "카메라", "enabled": false }
+  ]
+}

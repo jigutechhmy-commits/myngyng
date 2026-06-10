@@ -28,8 +28,8 @@ MVP 단계에서 단순화하는 부분:
 
 | 마일스톤 | 내용 | PRD 매핑 | 상태 |
 |---|---|---|---|
-| M0 | 프로젝트 셋업 (모노레포, DB, 인프라 골격) | 7장 아키텍처 | progress |
-| M1 | 사용자 입력 플로우 UI | 3장 STEP 1~5 | todo |
+| M0 | 프로젝트 셋업 (모노레포, DB, 인프라 골격) | 7장 아키텍처 | done |
+| M1 | 사용자 입력 플로우 UI | 3장 STEP 1~5 | progress |
 | M2 | PLAN & RESEARCH (사양서 + 후보군) | 4장 Phase 1~2 | todo |
 | M3 | REVIEW SCAN & LIST UP (후기 평가 + 1차 압축) | 4장 Phase 3~4 | todo |
 | M4 | DIGGING & FINAL ENTRY (세계관/Decision Narrative + 카드) | 4장 Phase 5~6 | todo |
@@ -67,13 +67,15 @@ PRD 7장 기준.
 
 ## 3. 마일스톤별 작업 항목
 
-### M0. 프로젝트 셋업
-- [ ] 모노레포 구조 생성 (`apps/web`, `apps/api`, `packages/shared`)
-- [ ] Next.js + Tailwind + shadcn/ui 초기화
-- [ ] FastAPI 프로젝트 초기화 (uvicorn, 기본 라우팅, CORS)
-- [ ] PostgreSQL + pgvector 도커/마이그레이션 셋업 (Alembic 등)
-- [ ] 환경변수/시크릿 관리 구조 (.env, AI API 키)
-- [ ] 카테고리 스펙 스키마 정의 (노트북 기준 CPU/RAM/저장장치/무게/배터리/필수기능)
+### M0. 프로젝트 셋업 — `done`
+- [x] 모노레포 구조 생성 (`apps/web`, `apps/api`, `packages/shared`)
+- [x] Next.js + Tailwind + shadcn/ui 초기화
+  - shadcn 레지스트리(ui.shadcn.com)가 본 실행 환경에서 차단되어 components.json과
+    기본 컴포넌트(button/card/input/label/badge/radio-group/progress)를 수동 작성
+- [x] FastAPI 프로젝트 초기화 (uvicorn, 기본 라우팅, CORS)
+- [x] PostgreSQL + pgvector 도커/마이그레이션 셋업 (Alembic, `0001_initial`)
+- [x] 환경변수/시크릿 관리 구조 (.env.example, AI API 키 자리)
+- [x] 카테고리 스펙 스키마 정의 (packages/shared/categories/laptop.json + 시드 스크립트)
 
 ### M1. 사용자 입력 플로우 (STEP 1~5)
 - [ ] STEP1 카테고리 선택 UI (노트북만 활성)
