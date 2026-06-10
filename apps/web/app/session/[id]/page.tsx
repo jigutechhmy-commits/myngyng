@@ -5,9 +5,13 @@ import { use, useCallback, useEffect, useState } from "react"
 import {
   CandidateOut,
   CardOut,
+  chooseWinner,
+  createTournament,
   getSession,
+  getTournament,
   listCandidates,
   listCards,
+  MatchOut,
   runDigging,
   runFinalEntry,
   runListUp,
@@ -15,6 +19,7 @@ import {
   runResearch,
   runReviewScan,
   SessionOut,
+  TournamentOut,
 } from "@/lib/api"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -25,6 +30,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
+import { Textarea } from "@/components/ui/textarea"
 
 const PHASE_LABELS: Record<string, string> = {
   created: "생성됨",
@@ -65,6 +71,7 @@ export default function SessionPage({
   const [session, setSession] = useState<SessionOut | null>(null)
   const [candidates, setCandidates] = useState<CandidateOut[]>([])
   const [cards, setCards] = useState<CardOut[]>([])
+  const [tournament, setTournament] = useState<TournamentOut | null>(null)
   const [running, setRunning] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
@@ -76,6 +83,9 @@ export default function SessionPage({
     }
     if (["final_entry", "choice", "done"].includes(s.engine_phase)) {
       setCards(await listCards(id))
+    }
+    if (["choice", "done"].includes(s.engine_phase)) {
+      setTournament(await getTournament(id))
     }
     return s
   }, [id])
@@ -160,11 +170,32 @@ export default function SessionPage({
         </Card>
       )}
 
-      {cards.length > 0 && (
+      {tournament && (
+        <TournamentSection
+          sessionId={id}
+          tournament={tournament}
+          cards={cards}
+          onUpdate={setTournament}
+        />
+      )}
+
+      {!tournament && cards.length > 0 && (
         <div className="space-y-4">
-          <h2 className="text-lg font-semibold">
-            최종 엔트리 ({cards.length}) — 토너먼트는 M5에서 시작됩니다
-          </h2>
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-semibold">최종 엔트리 ({cards.length})</h2>
+            <Button
+              onClick={async () => {
+                try {
+                  setTournament(await createTournament(id))
+                  await refresh()
+                } catch {
+                  setError("토너먼트 생성에 실패했습니다.")
+                }
+              }}
+            >
+              월드컵 시작
+            </Button>
+          </div>
           {cards.map((card) => (
             <FinalCard key={card.candidate_id} card={card} />
           ))}
@@ -227,6 +258,133 @@ export default function SessionPage({
         </Card>
       )}
     </main>
+  )
+}
+
+function roundLabel(roundNo: number, size: number): string {
+  const remaining = size >> (roundNo - 1)
+  if (remaining === 2) return "결승"
+  return `${remaining}강`
+}
+
+function TournamentSection({
+  sessionId,
+  tournament,
+  cards,
+  onUpdate,
+}: {
+  sessionId: string
+  tournament: TournamentOut
+  cards: CardOut[]
+  onUpdate: (t: TournamentOut) => void
+}) {
+  const [reason, setReason] = useState("")
+  const [choosing, setChoosing] = useState(false)
+  const cardById = new Map(cards.map((c) => [c.candidate_id, c]))
+
+  const currentMatch: MatchOut | undefined = tournament.matches.find(
+    (m) => m.winner_candidate_id === null
+  )
+  const decidedCount = tournament.matches.filter((m) => m.winner_candidate_id).length
+  const totalMatches = tournament.size - 1
+
+  async function pick(match: MatchOut, winnerId: string) {
+    setChoosing(true)
+    try {
+      onUpdate(await chooseWinner(sessionId, match.id, winnerId, reason.trim() || undefined))
+      setReason("")
+    } finally {
+      setChoosing(false)
+    }
+  }
+
+  if (tournament.status === "done") {
+    const winner = tournament.winner_candidate_id
+      ? cardById.get(tournament.winner_candidate_id)
+      : null
+    return (
+      <div className="space-y-4">
+        <Card className="border-primary">
+          <CardHeader>
+            <CardTitle>🏆 당신의 선택</CardTitle>
+            <CardDescription>
+              월드컵이 끝났습니다. Decision Journal 기록은 M6에서 이어집니다.
+            </CardDescription>
+          </CardHeader>
+        </Card>
+        {winner && <FinalCard card={winner} />}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">선택 기록</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ul className="space-y-2 text-sm">
+              {tournament.matches.map((m) => {
+                const w = m.winner_candidate_id ? cardById.get(m.winner_candidate_id) : null
+                const loserId =
+                  m.winner_candidate_id === m.candidate_a_id
+                    ? m.candidate_b_id
+                    : m.candidate_a_id
+                const l = cardById.get(loserId)
+                return (
+                  <li key={m.id} className="text-muted-foreground">
+                    <span className="text-foreground font-medium">
+                      [{roundLabel(m.round_no, tournament.size)}]
+                    </span>{" "}
+                    {w?.name} <span className="text-xs">vs {l?.name}</span>
+                    {m.choice_reason && (
+                      <span className="block pl-4 text-xs">— {m.choice_reason}</span>
+                    )}
+                  </li>
+                )
+              })}
+            </ul>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
+  if (!currentMatch) return null
+  const a = cardById.get(currentMatch.candidate_a_id)
+  const b = cardById.get(currentMatch.candidate_b_id)
+  if (!a || !b) return null
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <h2 className="text-lg font-semibold">
+          {roundLabel(currentMatch.round_no, tournament.size)} — 어느 쪽인가요?
+        </h2>
+        <span className="text-muted-foreground text-xs">
+          {decidedCount + 1} / {totalMatches} 경기
+        </span>
+      </div>
+      <div className="grid gap-4 lg:grid-cols-2">
+        {[a, b].map((card) => (
+          <div key={card.candidate_id} className="flex flex-col gap-2">
+            <FinalCard card={card} />
+            <Button
+              disabled={choosing}
+              onClick={() => pick(currentMatch, card.candidate_id)}
+            >
+              {card.name} 선택
+            </Button>
+          </div>
+        ))}
+      </div>
+      <div className="space-y-1">
+        <Textarea
+          rows={2}
+          placeholder="선택 이유를 남기면 Decision Journal에 기록됩니다 (선택)"
+          value={reason}
+          onChange={(e) => setReason(e.target.value)}
+        />
+        <p className="text-muted-foreground text-[10px]">
+          AI는 정답을 강요하지 않습니다. 결정은 당신의 몫입니다.
+        </p>
+      </div>
+    </div>
   )
 }
 

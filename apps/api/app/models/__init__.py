@@ -4,6 +4,7 @@ from app.models.decision_narrative import DecisionNarrative
 from app.models.final_entry_card import FinalEntryCard
 from app.models.request_session import RequestSession
 from app.models.review_summary import ReviewSummary
+from app.models.tournament import Tournament, TournamentMatch
 
 __all__ = [
     "CandidateProduct",
@@ -12,4 +13,6 @@ __all__ = [
     "FinalEntryCard",
     "RequestSession",
     "ReviewSummary",
+    "Tournament",
+    "TournamentMatch",
 ]

@@ -108,9 +108,43 @@ def test_full_engine_flow(session_id: str):
 
     # 카드 조회
     assert len(client.get(f"/api/sessions/{session_id}/cards").json()) == len(cards)
-
-    # 세션 phase 갱신 확인
     assert client.get(f"/api/sessions/{session_id}").json()["engine_phase"] == "final_entry"
+
+    # Phase 7. CHOICE — 토너먼트 (8강 요청, 통과 6명 → 4강 브래킷)
+    res = client.post(f"/api/sessions/{session_id}/tournament")
+    assert res.status_code == 201
+    t = res.json()
+    assert t["size"] == 4
+    assert t["status"] == "active"
+    assert len(t["matches"]) == 2
+
+    # 중복 생성 거부
+    assert client.post(f"/api/sessions/{session_id}/tournament").status_code == 409
+
+    # 결승까지 항상 A를 선택
+    while t["status"] == "active":
+        match = next(m for m in t["matches"] if m["winner_candidate_id"] is None)
+        res = client.post(
+            f"/api/sessions/{session_id}/tournament/matches/{match['id']}/choose",
+            json={"winner_candidate_id": match["candidate_a_id"], "reason": "테스트 선택"},
+        )
+        assert res.status_code == 200
+        t = res.json()
+
+    assert t["winner_candidate_id"] is not None
+    assert len(t["matches"]) == 3  # 4강 2매치 + 결승 1매치
+    assert all(m["winner_candidate_id"] for m in t["matches"])
+
+    # 종료 후 추가 선택 거부
+    last = t["matches"][-1]
+    res = client.post(
+        f"/api/sessions/{session_id}/tournament/matches/{last['id']}/choose",
+        json={"winner_candidate_id": last["candidate_a_id"]},
+    )
+    assert res.status_code == 409
+
+    # 세션 phase 확인
+    assert client.get(f"/api/sessions/{session_id}").json()["engine_phase"] == "choice"
 
 
 def test_research_requires_plan(session_id: str):

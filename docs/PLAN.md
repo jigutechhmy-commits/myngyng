@@ -33,8 +33,8 @@ MVP 단계에서 단순화하는 부분:
 | M2 | PLAN & RESEARCH (사양서 + 후보군) | 4장 Phase 1~2 | done |
 | M3 | REVIEW SCAN & LIST UP (후기 평가 + 1차 압축) | 4장 Phase 3~4 | done |
 | M4 | DIGGING & FINAL ENTRY (세계관/Decision Narrative + 카드) | 4장 Phase 5~6 | done |
-| M5 | CHOICE (토너먼트 UI) | 4장 Phase 7 | progress |
-| M6 | Decision Journal & Choice Confidence | 5~6장 | todo |
+| M5 | CHOICE (토너먼트 UI) | 4장 Phase 7 | done |
+| M6 | Decision Journal & Choice Confidence | 5~6장 | progress |
 | M7 | Post-MVP 고도화 (실 크롤러, 멀티 카테고리, Fact Shield 강화) | 장기 비전 | todo |
 
 권장 진행 순서: M0 → M1 → M2 → M3 → M4 → M5 → M6 (순차), M7은 별도 백로그.
@@ -117,11 +117,14 @@ PRD 7장 기준.
   - 핵심 사양/장점/단점/후기 요약/세계관/추천·비추천 대상/패키징 문구(headline)
   - 이미지는 Post-MVP (M7)로 이관
 
-### M5. CHOICE — 토너먼트 (Phase 7)
-- [ ] 토너먼트 브래킷 UI (선택된 강수에 따라 동적 생성)
-- [ ] A vs B 카드 비교 화면
-- [ ] 사용자 선택 입력 + "선택 이유" 기록(선택형 또는 자유 입력)
-- [ ] 토너먼트 진행/결과 상태 관리 (백엔드 세션)
+### M5. CHOICE — 토너먼트 (Phase 7) — `done`
+- [x] 토너먼트 브래킷 생성 (tournaments/tournament_matches, 마이그레이션 0005)
+  - Auto/요청 강수와 통과 후보 수로 2^n 브래킷 자동 결정
+  - 시드: 적합도+만족도 상위 진출, 대진 무작위
+- [x] A vs B 카드 비교 화면 (최종 카드 2장 + 선택 버튼)
+- [x] 사용자 선택 + "선택 이유" 자유 입력 기록 (choice_reason)
+- [x] 라운드 자동 진행/우승 확정, 종료 후 선택 기록 타임라인 표시
+- [x] pytest: 브래킷 크기/중복 생성 409/결승까지 진행/종료 후 선택 거부
 
 ### M6. Decision Journal & Choice Confidence
 - [ ] Decision Journal 데이터 모델: 선택 제품/선택 이유/선택 시점

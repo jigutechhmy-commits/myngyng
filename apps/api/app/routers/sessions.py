@@ -10,7 +10,7 @@ from app.models import (
     RequestSession,
     ReviewSummary,
 )
-from app.services import engine
+from app.services import engine, tournament as tournament_service
 
 router = APIRouter()
 
@@ -246,3 +246,75 @@ def run_final_entry(session_id: str, db: Session = Depends(get_db)) -> list[Card
 def list_cards(session_id: str, db: Session = Depends(get_db)) -> list[CardOut]:
     session = _get_session_or_404(db, session_id)
     return _build_cards(db, session)
+
+
+class MatchOut(BaseModel):
+    id: str
+    round_no: int
+    match_no: int
+    candidate_a_id: str
+    candidate_b_id: str
+    winner_candidate_id: str | None
+    choice_reason: str | None
+
+    model_config = {"from_attributes": True}
+
+
+class TournamentOut(BaseModel):
+    id: str
+    size: int
+    status: str
+    winner_candidate_id: str | None
+    matches: list[MatchOut] = Field(default_factory=list)
+
+    model_config = {"from_attributes": True}
+
+
+class ChoicePayload(BaseModel):
+    winner_candidate_id: str
+    reason: str | None = Field(default=None, max_length=1000, description="선택 이유")
+
+
+def _tournament_out(db: Session, t) -> TournamentOut:
+    return TournamentOut.model_validate(t, from_attributes=True).model_copy(
+        update={
+            "matches": [
+                MatchOut.model_validate(m, from_attributes=True)
+                for m in tournament_service.matches(db, t)
+            ]
+        }
+    )
+
+
+@router.post("/{session_id}/tournament", response_model=TournamentOut, status_code=201)
+def create_tournament(session_id: str, db: Session = Depends(get_db)) -> TournamentOut:
+    """Phase 7. CHOICE — 토너먼트 생성."""
+    session = _get_session_or_404(db, session_id)
+    t = tournament_service.create_tournament(db, session)
+    return _tournament_out(db, t)
+
+
+@router.get("/{session_id}/tournament", response_model=TournamentOut)
+def get_tournament(session_id: str, db: Session = Depends(get_db)) -> TournamentOut:
+    session = _get_session_or_404(db, session_id)
+    t = tournament_service.get_tournament(db, session)
+    return _tournament_out(db, t)
+
+
+@router.post(
+    "/{session_id}/tournament/matches/{match_id}/choose",
+    response_model=TournamentOut,
+)
+def choose_winner(
+    session_id: str,
+    match_id: str,
+    payload: ChoicePayload,
+    db: Session = Depends(get_db),
+) -> TournamentOut:
+    """A vs B에서 사용자의 선택을 기록한다."""
+    session = _get_session_or_404(db, session_id)
+    t = tournament_service.get_tournament(db, session)
+    t = tournament_service.choose_winner(
+        db, t, match_id, payload.winner_candidate_id, payload.reason
+    )
+    return _tournament_out(db, t)

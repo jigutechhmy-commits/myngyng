@@ -164,3 +164,49 @@ export function runFinalEntry(id: string) {
 export function listCards(id: string) {
   return request<CardOut[]>(`/api/sessions/${id}/cards`)
 }
+
+export interface MatchOut {
+  id: string
+  round_no: number
+  match_no: number
+  candidate_a_id: string
+  candidate_b_id: string
+  winner_candidate_id: string | null
+  choice_reason: string | null
+}
+
+export interface TournamentOut {
+  id: string
+  size: number
+  status: string
+  winner_candidate_id: string | null
+  matches: MatchOut[]
+}
+
+export function createTournament(id: string) {
+  return request<TournamentOut>(`/api/sessions/${id}/tournament`, {
+    method: "POST",
+  })
+}
+
+export function getTournament(id: string) {
+  return request<TournamentOut>(`/api/sessions/${id}/tournament`)
+}
+
+export function chooseWinner(
+  id: string,
+  matchId: string,
+  winnerCandidateId: string,
+  reason?: string
+) {
+  return request<TournamentOut>(
+    `/api/sessions/${id}/tournament/matches/${matchId}/choose`,
+    {
+      method: "POST",
+      body: JSON.stringify({
+        winner_candidate_id: winnerCandidateId,
+        reason: reason || null,
+      }),
+    }
+  )
+}
