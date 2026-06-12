@@ -14,9 +14,19 @@ apps/api         # FastAPI (Good Choice Engine)
 packages/shared  # 카테고리 스펙 등 공통 정의
 ```
 
-### 가장 쉬운 실행 방법 (Docker 한 번에 실행)
+### 원클릭 실행
 
-[Docker Desktop](https://www.docker.com/products/docker-desktop/)만 설치되어 있으면 됩니다.
+[Docker Desktop](https://www.docker.com/products/docker-desktop/)을 설치하고 실행해둔 상태에서:
+
+- **macOS**: `start.command` 더블클릭
+- **Windows**: `start.bat` 더블클릭
+- **터미널(Mac/Linux)**: `./start.sh`
+
+처음 실행 시 `.env`를 자동 생성하고(필요하면 `ANTHROPIC_API_KEY`/`WEB_PORT` 등을 입력), 빌드 후 웹 서버가 준비되면 브라우저를 자동으로 엽니다. 처음 빌드는 몇 분 걸릴 수 있습니다.
+
+종료는 `stop.command`(macOS) / `stop.bat`(Windows) / `./stop.sh`(터미널).
+
+### Docker로 직접 실행
 
 1. 터미널에서 이 저장소 폴더로 이동
 2. API 키 설정 (선택, 없으면 Mock 데이터로 동작):
