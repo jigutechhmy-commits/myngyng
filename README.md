@@ -14,7 +14,25 @@ apps/api         # FastAPI (Good Choice Engine)
 packages/shared  # 카테고리 스펙 등 공통 정의
 ```
 
-### 개발 환경 실행
+### 가장 쉬운 실행 방법 (Docker 한 번에 실행)
+
+[Docker Desktop](https://www.docker.com/products/docker-desktop/)만 설치되어 있으면 됩니다.
+
+1. 터미널에서 이 저장소 폴더로 이동
+2. API 키 설정 (선택, 없으면 Mock 데이터로 동작):
+   ```bash
+   cp .env.example .env
+   # .env 파일을 열어 ANTHROPIC_API_KEY=발급받은키 입력
+   ```
+3. 전체 실행:
+   ```bash
+   docker compose up --build
+   ```
+4. 브라우저에서 **http://localhost:3000/start** 접속 → STEP1~5 입력부터 시작
+
+종료는 `Ctrl+C`, 컨테이너/볼륨까지 정리하려면 `docker compose down -v`.
+
+### 개발 환경 실행 (직접 구동)
 ```bash
 # DB (PostgreSQL 16 + pgvector)
 npm run db:up          # docker compose up -d db
