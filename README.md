@@ -24,11 +24,17 @@ packages/shared  # 카테고리 스펙 등 공통 정의
    cp .env.example .env
    # .env 파일을 열어 ANTHROPIC_API_KEY=발급받은키 입력
    ```
-3. 전체 실행:
+3. (다른 프로젝트와 포트가 겹치는 경우) `.env`에 아래처럼 포트 변경:
+   ```bash
+   WEB_PORT=3001
+   API_PORT=8001
+   DB_PORT=5433
+   ```
+4. 전체 실행:
    ```bash
    docker compose up --build
    ```
-4. 브라우저에서 **http://localhost:3000/start** 접속 → STEP1~5 입력부터 시작
+5. 브라우저에서 **http://localhost:3000/start** (포트를 바꿨다면 `http://localhost:$WEB_PORT/start`) 접속 → STEP1~5 입력부터 시작
 
 종료는 `Ctrl+C`, 컨테이너/볼륨까지 정리하려면 `docker compose down -v`.
 

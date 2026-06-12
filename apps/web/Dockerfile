@@ -10,6 +10,9 @@ RUN npm ci
 COPY packages/shared ./packages/shared
 COPY apps/web ./apps/web
 
+ARG NEXT_PUBLIC_API_BASE_URL=http://localhost:8000
+ENV NEXT_PUBLIC_API_BASE_URL=$NEXT_PUBLIC_API_BASE_URL
+
 WORKDIR /workspace/apps/web
 RUN npm run build
 
