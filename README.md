@@ -14,7 +14,27 @@ apps/api         # FastAPI (Good Choice Engine)
 packages/shared  # 카테고리 스펙 등 공통 정의
 ```
 
-### 원클릭 실행
+### 원클릭 실행 (Docker 없이, 권장)
+
+미리 설치해야 하는 것:
+- [Python 3](https://www.python.org/downloads/)
+- [Node.js](https://nodejs.org/) (npm 포함)
+- PostgreSQL 16 + pgvector
+  - macOS: `brew install python node postgresql@16 pgvector && brew services start postgresql@16`
+  - Ubuntu/Debian: `sudo apt install -y python3 python3-venv nodejs npm postgresql postgresql-16-pgvector && sudo service postgresql start`
+  - Windows: [PostgreSQL 설치 마법사](https://www.postgresql.org/download/windows/)에서 Stack Builder로 pgvector 확장까지 설치
+
+설치가 끝나면:
+
+- **macOS**: `start-local.command` 더블클릭
+- **Windows**: `start-local.bat` 더블클릭
+- **터미널(Mac/Linux)**: `./start-local.sh`
+
+처음 실행 시 DB 계정/데이터베이스 생성, API 의존성 설치, 마이그레이션, 웹 의존성 설치까지 자동으로 진행한 뒤 브라우저를 엽니다. 처음 실행은 몇 분 걸릴 수 있습니다. `ANTHROPIC_API_KEY`를 쓰려면 `apps/api/.env`에 입력해두면 됩니다(없으면 Mock 데이터로 동작).
+
+종료는 `stop-local.command`(macOS) / `stop-local.bat`(Windows) / `./stop-local.sh`(터미널).
+
+### 원클릭 실행 (Docker)
 
 [Docker Desktop](https://www.docker.com/products/docker-desktop/)을 설치하고 실행해둔 상태에서:
 
