@@ -1,0 +1,24 @@
+{
+  "id": "laptop",
+  "name_ko": "노트북",
+  "enabled": true,
+  "spec_schema": {
+    "fields": [
+      { "key": "cpu", "label_ko": "CPU", "type": "string", "required": true },
+      { "key": "ram_gb", "label_ko": "RAM", "type": "number", "unit": "GB", "required": true },
+      { "key": "storage_gb", "label_ko": "저장장치", "type": "number", "unit": "GB", "required": true },
+      { "key": "weight_kg", "label_ko": "무게", "type": "number", "unit": "kg", "required": true },
+      { "key": "battery_hours", "label_ko": "배터리", "type": "number", "unit": "시간", "required": true },
+      { "key": "required_features", "label_ko": "필수 기능", "type": "string[]", "required": false }
+    ]
+  },
+  "priority_options": [
+    { "key": "performance", "label_ko": "성능" },
+    { "key": "portability", "label_ko": "휴대성" },
+    { "key": "battery", "label_ko": "배터리" },
+    { "key": "display", "label_ko": "디스플레이" },
+    { "key": "build_quality", "label_ko": "내구성/빌드" },
+    { "key": "price_value", "label_ko": "가성비" },
+    { "key": "design", "label_ko": "디자인" }
+  ]
+}
